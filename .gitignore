@@ -1,0 +1,22 @@
+# ===== Secrets — NEVER commit =====
+授权码与密码*.txt
+*.secret
+.env
+.env.*
+
+# Backend runtime secret store (scrypt hashes of admin pw + auth codes).
+# Generate on first run / via setup script; keep out of git.
+quiz-server/data/access.json
+
+# ===== Dependencies =====
+node_modules/
+
+# ===== Build / OS noise =====
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# ===== Superseded / local-only archives =====
+archive/
+dist-archive/
