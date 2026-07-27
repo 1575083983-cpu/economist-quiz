@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>经济师·人力 刷题</title>
+  <link rel="stylesheet" href="styles.css" />
+<script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
+<script>
+(function(){
+  try{
+    var beacon=new BeaconAction({
+      appkey:'0WEB06U85YBSLJNL',
+      versionCode:'1.0.0',
+      channelID:'share',
+      delay:1000,
+      sessionDuration:30*60*1000,
+      isOversea:false,
+      needReportRqdEvent:false
+    });
+    beacon.onDirectUserAction('preview_page_view',{
+      'url':location.href,
+      'referrer':document.referrer,
+      'title':document.title,
+      'sandbox_id':'6a4dbaf2ff99404da3cda7aec01649d9'
+    });
+  }catch(e){}
+})();
+</script></head>
+<body>
+  <!-- 授权闸门 + 管理面板 -->
+  <div id="gate" class="gate">
+    <div id="gateBox" class="gate-box">
+      <div class="gate-title">🔒 经济师刷题 · 授权进入</div>
+      <p class="gate-tip">本页面仅限授权用户使用，请输入授权码。</p>
+      <input id="gateCode" class="gate-input" placeholder="输入授权码" autocomplete="off" />
+      <button id="gateEnter" class="primary-btn">进入</button>
+      <div id="gateMsg" class="gate-msg"></div>
+      <button id="gateAdminLink" class="ghost-btn small-btn gate-admin-link">管理者入口</button>
+    </div>
+
+    <div id="adminPanel" class="gate-box hidden">
+      <div class="gate-title">🛡️ 管理面板</div>
+      <div id="adminLogin">
+        <input id="adminPwd" class="gate-input" type="password" placeholder="管理密码" autocomplete="off" />
+        <button id="adminLoginBtn" class="primary-btn">解锁</button>
+      </div>
+      <div id="adminTools" class="hidden">
+        <button id="adminGenBtn" class="primary-btn small-btn">生成新授权码</button>
+        <input id="adminNewCode" class="gate-input hidden" readonly />
+        <button id="adminPwdChangeBtn" class="ghost-btn small-btn">修改管理密码</button>
+        <button id="adminExportBtn" class="ghost-btn small-btn">导出 access.js</button>
+        <div id="adminCodeList" class="admin-code-list"></div>
+        <button id="adminBack" class="ghost-btn small-btn">返回</button>
+      </div>
+      <div id="adminMsg" class="gate-msg"></div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">📚 经济师·人力刷题</div>
+    <div class="topbar-actions">
+      <button id="syncBtn" class="ghost-btn" title="导出/导入进度，多设备同步">⇅ 同步</button>
+      <button id="resetBtn" class="ghost-btn" title="清空进度">重置</button>
+    </div>
+  </header>
+
+  <!-- 首页 / 模式选择 -->
+  <main id="homeView" class="view">
+    <section class="stats-card">
+      <div class="stat">
+        <span class="stat-num" id="statDone">0</span>
+        <span class="stat-label">已做</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statWrong">0</span>
+        <span class="stat-label">错题</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statRate">--</span>
+        <span class="stat-label">正确率</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statWrongCount">0</span>
+        <span class="stat-label">累计错次</span>
+      </div>
+    </section>
+
+    <p class="hint">利用零碎时间，每次 5 题一组，进度自动保存。</p>
+
+    <div class="mode-list">
+      <button class="mode-btn" data-mode="sequence">
+        <span class="mode-emoji">📑</span>
+        <span class="mode-text"><b>顺序刷题</b><i>按章节纵向排列，点开即刷</i></span>
+      </button>
+      <button class="mode-btn" data-mode="random">
+        <span class="mode-emoji">🎲</span>
+        <span class="mode-text"><b>随机刷题</b><i>每次随机抽题，防肌肉记忆</i></span>
+      </button>
+      <button class="mode-btn" data-mode="wrong">
+        <span class="mode-emoji">❌</span>
+        <span class="mode-text"><b>错题本</b><i id="wrongHint">重做收藏的错题</i></span>
+      </button>
+      <button class="mode-btn" data-mode="weak">
+        <span class="mode-emoji">🎯</span>
+        <span class="mode-text"><b>薄弱专攻</b><i>按错题次数排序，先啃最易错的点</i></span>
+      </button>
+      <button class="mode-btn" data-mode="sim">
+        <span class="mode-emoji">🧪</span>
+        <span class="mode-text"><b>仿真练习</b><i>按章·知识点分组，每组5题测效果</i></span>
+      </button>
+      <button class="mode-btn" data-mode="exam">
+        <span class="mode-emoji">📝</span>
+        <span class="mode-text"><b>整套模拟卷</b><i>70单+35多·90分钟·机考式真实判分</i></span>
+      </button>
+    </div>
+
+    <div class="weak-section hidden" id="weakSection">
+      <div class="weak-head">📉 薄弱环节 · 错得最多的题</div>
+      <div id="weakList" class="weak-list"></div>
+    </div>
+  </main>
+
+  <!-- 章节选择（顺序刷题入口） -->
+  <main id="chapterView" class="view hidden">
+    <div class="quiz-progress">
+      <button id="chapterBackBtn" class="ghost-btn">← 首页</button>
+      <span>选择章节（顺序刷题）</span>
+    </div>
+    <div id="freqFilter" class="freq-filter"></div>
+    <div id="chapterList" class="chapter-list"></div>
+  </main>
+
+  <!-- 仿真练习（按章→知识点分组，每组5题） -->
+  <main id="simView" class="view hidden">
+    <div class="quiz-progress">
+      <button id="simBackBtn" class="ghost-btn">← 首页</button>
+      <span id="simTitle">仿真练习</span>
+    </div>
+    <div id="simChapterList" class="chapter-list"></div>
+    <div id="simPointList" class="chapter-list hidden"></div>
+  </main>
+
+  <!-- 练习视图 -->
+  <main id="quizView" class="view hidden">
+    <div class="quiz-progress">
+      <span id="quizProgressText">第 1 / 5 题</span>
+      <span id="quizTimer" class="hidden"></span>
+      <button id="quitBtn" class="ghost-btn">退出</button>
+    </div>
+    <div id="quizCard" class="quiz-card">
+      <div class="q-meta">
+        <span class="q-chapter" id="qChapter"></span>
+        <span class="q-type" id="qType"></span>
+        <span class="q-freq" id="qFreq"></span>
+        <span class="q-wrongcount hidden" id="qWrongCount"></span>
+      </div>
+      <div class="q-stem" id="qStem"></div>
+      <div class="q-options" id="qOptions"></div>
+      <div class="q-analysis hidden" id="qAnalysis"></div>
+      <div class="q-actions">
+        <button id="submitBtn" class="primary-btn" disabled>提交</button>
+        <button id="nextBtn" class="primary-btn hidden">下一题 →</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 一组结束 -->
+  <main id="endView" class="view hidden">
+    <div class="end-card">
+      <div class="end-emoji">✅</div>
+      <h2 id="endTitle">本组完成</h2>
+      <p id="endSummary"></p>
+      <button id="againBtn" class="primary-btn">再来一组</button>
+      <button id="simReplayBtn" class="ghost-btn hidden">重做本组</button>
+      <button id="backHomeBtn" class="ghost-btn wide">返回首页</button>
+    </div>
+  </main>
+
+  <!-- 整套模拟卷 · 成绩与逐题回顾 -->
+  <main id="examResultView" class="view hidden">
+    <div class="exam-card">
+      <div class="exam-score">总分 <b id="examScore">0</b> <span>/ 140</span></div>
+      <div id="examPass" class="exam-pass"></div>
+      <p id="examSummary" class="exam-summary"></p>
+      <div class="exam-legend">判分规则：单选每题 1 分；多选错选 0 分、少选每对 0.5 分、全对 2 分；84 分合格。</div>
+      <div id="examReview" class="exam-review"></div>
+      <button id="examHomeBtn" class="primary-btn wide">返回首页</button>
+    </div>
+  </main>
+
+  <footer class="footnote">
+    数据存于本机浏览器，不会上传。题库可在 <code>questions.js</code> 中替换。
+  </footer>
+
+  <!-- 整套模拟卷 · 组卷说明 -->
+  <div id="examIntro" class="mask hidden">
+    <div class="confirm-box exam-intro">
+      <div class="end-emoji">📝</div>
+      <h2>整套模拟卷</h2>
+      <p class="exam-intro-rules">
+        共 <b>105</b> 题：<b>70</b> 道单选（每题 1 分）＋ <b>35</b> 道多选（每题 2 分）<br/>
+        满分 <b>140</b> 分，<b>84</b> 分合格；<b>90</b> 分钟机考式倒计时，时间到自动交卷。<br/>
+        判分规则：单选全对得分；多选<b>错选 0 分</b>、<b>少选每对 0.5 分</b>、全对 2 分。
+      </p>
+      <div class="confirm-actions">
+        <button id="examStartBtn" class="primary-btn">开始考试</button>
+        <button id="examCancelBtn" class="ghost-btn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 同步进度弹窗（导出/导入） -->
+  <div id="syncMask" class="mask hidden">
+    <div class="confirm-box sync-box">
+      <h3 class="sync-title">⇅ 同步进度</h3>
+      <p class="sync-tip">进度保存在本机浏览器。换设备时：在旧设备「导出」，在新设备「导入」即可接续。</p>
+
+      <div class="sync-section">
+        <div class="sync-sec-title">📤 导出（本机 → 其他设备）</div>
+        <textarea id="syncExportText" class="sync-textarea" readonly placeholder="点击下方按钮生成同步码"></textarea>
+        <div class="sync-actions">
+          <button id="syncGenBtn" class="primary-btn small-btn">生成同步码</button>
+          <button id="syncCopyBtn" class="ghost-btn small-btn">复制</button>
+          <button id="syncDownloadBtn" class="ghost-btn small-btn">下载文件</button>
+        </div>
+      </div>
+
+      <div class="sync-section">
+        <div class="sync-sec-title">📥 导入（其他设备 → 本机）</div>
+        <textarea id="syncImportText" class="sync-textarea" placeholder="粘贴同步码，或选择进度文件"></textarea>
+        <div class="sync-actions">
+          <label class="ghost-btn small-btn file-label">选择文件<input type="file" id="syncFileInput" accept=".txt,.json" hidden /></label>
+          <button id="syncMergeBtn" class="primary-btn small-btn">合并导入</button>
+          <button id="syncOverwriteBtn" class="danger-btn small-btn">覆盖导入</button>
+        </div>
+        <p class="sync-note">合并：两边进度取并集（推荐）；覆盖：以导入数据完全替换本机进度。</p>
+      </div>
+
+      <div id="syncMsg" class="sync-msg hidden"></div>
+      <div class="confirm-actions">
+        <button id="syncCloseBtn" class="ghost-btn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重置确认弹窗 -->
+  <div id="confirmMask" class="mask hidden">
+    <div class="confirm-box">
+      <p>确定清空所有做题进度与错题吗？此操作不可恢复。</p>
+      <div class="confirm-actions">
+        <button id="confirmYes" class="danger-btn">清空</button>
+        <button id="confirmNo" class="ghost-btn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="access.js"></script>
+  <script src="gate.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
